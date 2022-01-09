@@ -6,6 +6,7 @@ import url from 'url'
 import mongoose from 'mongoose'
 import messages from "./models/messageModel.js";
 import users from './models/userModel.js'
+import balances from './models/balanceModel.js'
 
 dotenv.config()
 
@@ -27,14 +28,10 @@ const client = new Client({
 
 client.on('ready', async() => {
     console.log(`Logged in as ${client.user.tag}!`)
-    // await db.run("DROP TABLE IF EXISTS users")
-    // await db.run("CREATE TABLE users (usernum text,username text, balance INTEGER, btc real, eth real, ada real)");
-    // // fs.appendFile("logfile.txt", "BOT STARTED \n", function (err){
-    // //     console.log(err)
-    // // });
 });
 
 client.on('messageCreate', async message => {
+
         if(!message.content.startsWith(prefix) || message.author.bot){
             return;
         }
@@ -42,36 +39,11 @@ client.on('messageCreate', async message => {
         await message.reply("You are DMing me now!");
         return;
     }
-    //the first param is the name of the model being used, the second is the schema in the db,
-    //Good to use plurals for the schema name
-    const newMessageModel = mongoose.model('message', 'messages');
+    logToDB(message)
+
         let input = message.content.substring(1)
         let command = input.split(" ");
 
-    // const newMessage = new newMessageModel({ username: message.author.username, message: message.content, timestamp: message.createdTimestamp });
-    const newMessage = new newMessageModel(message);
-    let writeMessage = {
-        username: message.author.username,
-        userid: message.author.id,
-        message: message.content,
-        timestamp: message.createdTimestamp,
-        channelId:message.channelId
-    }
-    // console.log(message)
-
-    newMessageModel.create(writeMessage, (err, data) => {
-        if(err){
-            console.log('ERROR STUFF BELOW \n' + err)
-        }else{
-            // console.log('DATA WRITTEN \n' + data + '\n' + 'END OF DATA')
-            // console.log('MESSAGE RECEIVED \n' +
-            //     'CONTENTS OF MESSAGE BELOW \n' +
-            //     message.content)
-            let command = message.content.split(" ");
-            // console.log(command)
-            logToFile(message.content)
-        }
-    })
     if(command[0] == 'register'){
         let newUser = {
             username:message.author.username,
@@ -94,12 +66,7 @@ client.on('messageCreate', async message => {
 
         await checkIfRegistered(newUser)
 
-
-        await registerUser(newUser).then(() => {
-            console.log('done')
-            }
-        );
-        await message.reply('User registered!');
+        await message.reply('User registered');
     }
     if(command[0] == 'help'){
         help();
@@ -117,8 +84,34 @@ function logToFile(logstring){
         });
 }
 
+async function logToDB(message){
+    //the first param is the name of the model being used, the second is the schema in the db,
+    //Good to use plurals for the schema name
+    const newMessageModel = mongoose.model('message', 'messages');
+
+    // const newMessage = new newMessageModel({ username: message.author.username, message: message.content, timestamp: message.createdTimestamp });
+    const newMessage = new newMessageModel(message);
+    let writeMessage = {
+        username: message.author.username,
+        userid: message.author.id,
+        message: message.content,
+        timestamp: message.createdTimestamp,
+        channelId:message.channelId
+    }
+
+    await newMessageModel.create(writeMessage, (err, data) => {
+        if(err){
+            console.log('ERROR STUFF BELOW \n' + err)
+        }else{
+
+            logToFile(message.content)
+        }
+    })
+}
+
 async function registerUser(user){
     let userModel = mongoose.model('user', 'users')
+    let balanceModel = mongoose.model('balance', 'balances')
 
     let newUser = {
         username:user.username,
@@ -134,28 +127,54 @@ async function registerUser(user){
             // console.log('DATA WRITTEN \n' + data + '\n' + 'END OF DATA')
         }
     })
+
+    let newBalance = {
+        userid:user.userid,
+        btc:0,
+        eth:0,
+        bnb:0,
+        sol:0,
+        xrp:0,
+        ada:0,
+        doge:0,
+        algo:0,
+    }
+
+    balanceModel.create(newBalance, (err, data) => {
+        if(err){
+            console.log(err)
+        }else{
+            // console.log('DATA WRITTEN \n' + data + '\n' + 'END OF DATA')
+        }
+    })
+
 }
 
 async function checkIfRegistered(user){
     console.log(`CHECKING IF REGISTERED WITH ID: ${user.userid}`)
     let userModel = mongoose.model('user', 'users')
 
-    userModel.findOne({'userid': user.userid}, function(err, result){
+    userModel.findOne({'userid': user.userid}, async function(err, result){
         if(err){
             console.log('ERROR IS: \n' + err)
         }
         else{
             console.log('RESULT IS: \n' + result)
             if(result == null){
-                console.log('NO RECORD EXISTS')
-                return false;
-            }if(result.userid){
-                console.log('USER ID FOUND: \n' + result.userid)
-                return true;
+                console.log('NO RECORD EXISTS, CREATING USER.')
+                await registerUser(user).then(() => {
+                    return false;
+                });
+            }
+
+            if(result != null){
+                if(result.userid){
+                    console.log('USER ID FOUND: \n' + result.userid)
+                    return true;
+                }
             }
         }
     })
-
 }
 
 function help(helpCommand){
