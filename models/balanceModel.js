@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 
 const balanceSchema = new mongoose.Schema({
     userid: {type:String},
+    usd:{type:Number},
     btc:{type:Number},
     eth:{type:Number},
     bnb:{type:Number},
