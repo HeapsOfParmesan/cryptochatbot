@@ -130,6 +130,7 @@ async function registerUser(user){
 
     let newBalance = {
         userid:user.userid,
+        usd:1000000,
         btc:0,
         eth:0,
         bnb:0,
