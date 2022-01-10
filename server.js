@@ -7,6 +7,7 @@ import mongoose from 'mongoose'
 import messages from "./models/messageModel.js";
 import users from './models/userModel.js'
 import balances from './models/balanceModel.js'
+import coins from './models/coinModel.js'
 
 dotenv.config()
 
@@ -68,6 +69,13 @@ client.on('messageCreate', async message => {
 
         await message.reply('User registered');
     }
+
+
+    if(command[0] == 'coins'){
+        // await message.reply(await getCoinNames());
+        await storeCoinPrices();
+        await message.reply('storing coins hopefully')
+    }
     if(command[0] == 'help'){
         help();
     }
@@ -85,12 +93,14 @@ function logToFile(logstring){
 }
 
 async function logToDB(message){
+    //Logs message to the database
+
     //the first param is the name of the model being used, the second is the schema in the db,
     //Good to use plurals for the schema name
     const newMessageModel = mongoose.model('message', 'messages');
 
     // const newMessage = new newMessageModel({ username: message.author.username, message: message.content, timestamp: message.createdTimestamp });
-    const newMessage = new newMessageModel(message);
+    // const newMessage = new newMessageModel(message);
     let writeMessage = {
         username: message.author.username,
         userid: message.author.id,
@@ -103,7 +113,6 @@ async function logToDB(message){
         if(err){
             console.log('ERROR STUFF BELOW \n' + err)
         }else{
-
             logToFile(message.content)
         }
     })
@@ -189,6 +198,45 @@ function help(helpCommand){
             return 'other help used'
             break;
     }
+}
+
+async function getCoinNames(){
+    //returns a string 100 coins and their prices in usd supported by the api
+    let data = await axios.get('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false');
+    // console.log(data.data)
+    let message = ``;
+    data.data.forEach((coin)=>{message = message + `\n` + coin.name  + ` - ` + coin.current_price})
+    return `DATA SHOULD BE HERE \n ${message}`;
+}
+
+async function storeCoinPrices(){
+    //get coin prices from the api and store them in the db
+    let data = await axios.get('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false');
+    let coinArr = [];
+    const coinModel = mongoose.model('coin', 'coins');
+
+    data.data.forEach((coin)  =>{
+        coinArr.push(coin)
+    })
+
+    console.log('COIN ARRAY \n'+ coinArr)
+
+    await coinModel.insertMany(coinArr, (err) => {
+        if(err){
+            console.log(err)
+        }
+    });
+
+    // await coinModel.findByIdAndUpdate(coinArr, (err) => {
+    //     if(err){
+    //         console.log(err)
+    //     }
+    // })
+
+    // await coinModel.updateMany(coinArr, (err) => {
+    //     if(err){
+    //         console.log(err)
+    //     }});
 }
 
 client.login(process.env.DISCORD_TOKEN);
