@@ -1,5 +1,4 @@
 import mongoose from 'mongoose';
-
 const coinSchema = new mongoose.Schema({
     id: {type:String},
     symbol: {type:String},
@@ -25,7 +24,8 @@ const coinSchema = new mongoose.Schema({
     atl:{type:Number},
     atl_change_percentage:{type:Number},
     atl_date:{type:String},
-    last_updated:{type:String}
-})
+    last_updated:{type:String},
 
+
+})
 export default mongoose.model('coin', coinSchema)

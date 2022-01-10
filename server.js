@@ -4,6 +4,7 @@ import {Client, Intents, Message} from 'discord.js';
 import fs from 'fs'
 import url from 'url'
 import mongoose from 'mongoose'
+import upsertMany from '@meanie/mongoose-upsert-many'
 import messages from "./models/messageModel.js";
 import users from './models/userModel.js'
 import balances from './models/balanceModel.js'
@@ -20,6 +21,7 @@ dbConnect().catch(err => console.log(err));
 mongoose.connection.once('open', () => {
     console.log('DB CONNECTED')
 })
+mongoose.plugin(upsertMany)
 const prefix = '-';
 
 const client = new Client({
@@ -75,6 +77,11 @@ client.on('messageCreate', async message => {
         // await message.reply(await getCoinNames());
         await storeCoinPrices();
         await message.reply('storing coins hopefully')
+    }
+    if(command[0] == 'newcoins'){
+        // await message.reply(await getCoinNames());
+        await updateCoins()
+        await message.reply('updating coins hopefully')
     }
     if(command[0] == 'help'){
         help();
@@ -209,34 +216,58 @@ async function getCoinNames(){
     return `DATA SHOULD BE HERE \n ${message}`;
 }
 
-async function storeCoinPrices(){
+async function storeCoinPrices() {
     //get coin prices from the api and store them in the db
     let data = await axios.get('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false');
     let coinArr = [];
     const coinModel = mongoose.model('coin', 'coins');
 
-    data.data.forEach((coin)  =>{
+    data.data.forEach((coin) => {
         coinArr.push(coin)
     })
 
-    console.log('COIN ARRAY \n'+ coinArr)
+    console.log('COIN ARRAY \n' + coinArr)
+    coinArr.forEach(e => console.log(e.name))
 
     await coinModel.insertMany(coinArr, (err) => {
-        if(err){
+        if (err) {
             console.log(err)
         }
     });
+}
+async function updateCoins(){
+    let data = await axios.get('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false');
+    let coinArr = [];
+    const coinModel = mongoose.model('coin', 'coins');
 
+    data.data.forEach((coin) => {
+        coinArr.push(coin)
+    })
     // await coinModel.findByIdAndUpdate(coinArr, (err) => {
     //     if(err){
     //         console.log(err)
     //     }
     // })
 
-    // await coinModel.updateMany(coinArr, (err) => {
-    //     if(err){
-    //         console.log(err)
-    //     }});
+    let options = {
+        upsert:true,
+        multipleCastError:true //TURN THIS OFF LATER!
+    }
+
+    await coinModel.updateMany({'name':e=>e.name},coinArr, options, (err, writeOpResult) => {
+        if(err){
+            console.log(err)
+        }
+        if(writeOpResult){
+            console.log(writeOpResult)
+        }
+    });
+
+    // const result2 = await coinModel.upsertMany(coinArr, {marchFields:['name', 'symbol']})
+
+    // await coinModel.upsertMany(coinArr)
+
 }
 
 client.login(process.env.DISCORD_TOKEN);
+
