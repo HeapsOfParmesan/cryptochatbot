@@ -235,7 +235,9 @@ async function storeCoinPrices() {
         }
     });
 }
+
 async function updateCoins(){
+    //update the coin prices and data in the db
     let data = await axios.get('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false');
     let coinArr = [];
     const coinModel = mongoose.model('coin', 'coins');
@@ -243,30 +245,39 @@ async function updateCoins(){
     data.data.forEach((coin) => {
         coinArr.push(coin)
     })
-    // await coinModel.findByIdAndUpdate(coinArr, (err) => {
-    //     if(err){
-    //         console.log(err)
-    //     }
-    // })
+    coinArr.forEach((coin) => {
 
-    let options = {
-        upsert:true,
-        multipleCastError:true //TURN THIS OFF LATER!
-    }
-
-    await coinModel.updateMany({'name':e=>e.name},coinArr, options, (err, writeOpResult) => {
-        if(err){
-            console.log(err)
+        let update = {
+            symbol: coin.symbol,
+            name: coin.name,
+            current_price: coin.current_price,
+            market_cap: coin.market_cap,
+            market_cap_rank: coin.market_cap_rank,
+            total_volume: coin.total_volume,
+            high_24h: coin.high_24h,
+            low_24h: coin.low_24h,
+            price_change_24h: coin.price_change_24h,
+            price_change_percentage_24h: coin.price_change_percentage_24h,
+            market_cap_change_24h: coin.market_cap_change_24h,
+            market_cap_change_percentage_24h: coin.market_cap_change_percentage_24h,
+            circulating_supply: coin.circulating_supply,
+            total_supply: coin.total_supply,
+            max_supply: coin.max_supply,
+            ath: coin.ath,
+            ath_change_percentage: coin.ath_change_percentage,
+            ath_date: coin.ath_date,
+            atl: coin.atl,
+            atl_change_percentage: coin.atl_change_percentage,
+            atl_date: coin.atl_date,
+            roi: coin.roi,
+            last_updated: coin.last_updated
         }
-        if(writeOpResult){
-            console.log(writeOpResult)
-        }
-    });
 
-    // const result2 = await coinModel.upsertMany(coinArr, {marchFields:['name', 'symbol']})
-
-    // await coinModel.upsertMany(coinArr)
-
+        coinModel.updateMany( { id : coin.id}, update, {upsert:true}, function (error){
+            if(error){console.log(error)}
+        })
+        console.log(coin)
+    })
 }
 
 client.login(process.env.DISCORD_TOKEN);
