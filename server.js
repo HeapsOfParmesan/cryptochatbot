@@ -1,13 +1,15 @@
 import dotenv from 'dotenv'
 import axios from 'axios'
-import {Client, Intents} from 'discord.js';
+import {Client, Intents, Message} from 'discord.js';
 import fs from 'fs'
+import url from 'url'
 import mongoose from 'mongoose'
 import messages from "./models/messageModel.js";
 import users from './models/userModel.js'
 import balances from './models/balanceModel.js'
 import coins from './models/coinModel.js'
 import rawMessageModel from "./models/rawMessageModel.js";
+import * as Process from "process";
 
 dotenv.config()
 
@@ -98,7 +100,7 @@ client.on('messageCreate', async message => {
         // await message.reply()
         // await getBalance(message.author.id)
 
-        await balances.find({userid:message.author.id}, {}, {},  (async (error, result) => {
+        let maybeUser = balances.find({userid:message.author.id}, {}, {},  (async (error, result) => {
             let replyString = ``;
             if(error){
                 console.log(error)
@@ -106,6 +108,7 @@ client.on('messageCreate', async message => {
             }
             if(result){
                 console.log(result.usd)
+                replyString += result
                 let resultJson = JSON.stringify(result[0])
                 let newString = JSON.parse(resultJson)
                 console.log(newString.usd)
@@ -150,7 +153,7 @@ async function logToDB(message){
 
     }
 
-    await messages.create(writeMessage, (err) => {
+    await messages.create(writeMessage, (err, data) => {
         if(err){
             console.log('ERROR STUFF BELOW \n' + err)
         }else{
@@ -160,6 +163,8 @@ async function logToDB(message){
 }
 
 async function registerUser(user){
+    let userModel = mongoose.model('user', 'users')
+    let balanceModel = mongoose.model('balance', 'balances')
 
     let newUser = {
         username:user.username,
@@ -168,7 +173,7 @@ async function registerUser(user){
         timestamp:user.timestamp
     }
 
-    users.create(newUser, (err, data) => {
+    userModel.create(newUser, (err, data) => {
         if(err){
             console.log(err)
         }else{
@@ -230,15 +235,17 @@ function help(helpCommand){
         case 'help':
             console.log('default help used')
             return 'default help used'
+            break;
         case 'other':
             console.log('other help used')
             return 'other help used'
+            break;
     }
 }
 
 async function getBalance(user){
     const userModel = mongoose.model('balance', 'balances')
-    await users.find({userid:user}, {}, {}, ((error, result) => {
+    let maybeUser = userModel.find({userid:user}, {}, {}, ((error, result) => {
         if(error){
             console.log(error)
             return 'No balance'
