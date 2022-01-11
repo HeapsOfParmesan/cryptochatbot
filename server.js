@@ -4,7 +4,6 @@ import {Client, Intents, Message} from 'discord.js';
 import fs from 'fs'
 import url from 'url'
 import mongoose from 'mongoose'
-import upsertMany from '@meanie/mongoose-upsert-many'
 import messages from "./models/messageModel.js";
 import users from './models/userModel.js'
 import balances from './models/balanceModel.js'
@@ -21,7 +20,6 @@ dbConnect().catch(err => console.log(err));
 mongoose.connection.once('open', () => {
     console.log('DB CONNECTED')
 })
-mongoose.plugin(upsertMany)
 const prefix = '-';
 
 const client = new Client({
@@ -82,6 +80,12 @@ client.on('messageCreate', async message => {
         // await message.reply(await getCoinNames());
         await updateCoins()
         await message.reply('updating coins hopefully')
+    }
+    if(command[0] == 'balance'){
+        await message.reply(
+        await getBalance(message.author.id)
+
+        )
     }
     if(command[0] == 'help'){
         help();
@@ -205,6 +209,21 @@ function help(helpCommand){
             return 'other help used'
             break;
     }
+}
+
+async function getBalance(user){
+    const userModel = mongoose.model('balance', 'balances')
+    let maybeUser = userModel.find({userid:user}, {}, {}, ((error, result) => {
+        if(error){
+            console.log(error)
+            return 'No balance'
+        }
+        if(result){
+            console.log(result)
+            return result.usd
+        }
+    }))
+
 }
 
 async function getCoinNames(){
