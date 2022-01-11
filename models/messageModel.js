@@ -5,7 +5,16 @@ const messageSchema = new mongoose.Schema({
     userid: {type:String},
     message:{type:String},
     timestamp:{type:String},
-    channelId:{type:String}
+    channelId:{type:String},
+
+    type:{type:String},
+    pinned:{type:Boolean},
+
+    tts:{type:Boolean},
+    system:{type:Boolean},
+    nonce:{type:String},
+
+
 })
 
 export default mongoose.model('message', messageSchema)

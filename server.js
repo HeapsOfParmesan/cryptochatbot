@@ -1,14 +1,13 @@
 import dotenv from 'dotenv'
 import axios from 'axios'
-import {Client, Intents, Message} from 'discord.js';
+import {Client, Intents} from 'discord.js';
 import fs from 'fs'
-import url from 'url'
 import mongoose from 'mongoose'
 import messages from "./models/messageModel.js";
 import users from './models/userModel.js'
 import balances from './models/balanceModel.js'
 import coins from './models/coinModel.js'
-import * as Process from "process";
+import rawMessageModel from "./models/rawMessageModel.js";
 
 dotenv.config()
 
@@ -36,21 +35,23 @@ client.on('ready', async() => {
 ////////////////////////////
 //////   INTERVALS   ///////
 
-setInterval(updateCoins, Process.env.COINGECKO_REFRESH_TIME );
+// setInterval(updateCoins, Process.env.COINGECKO_REFRESH_TIME );
+// setInterval(updateCoins,60000 );
 
 
 ////////////////////////////
 
-
-
 client.on('messageCreate', async message => {
 
-        if(!message.content.startsWith(prefix) || message.author.bot){
-            return;
-        }
+    // console.log(message)
+    // let rawMessage = mongoose.model('raw_message', 'raw_messages')
+    await rawMessageModel.create(message)
+
+    if(!message.content.startsWith(prefix) || message.author.bot){
+        return;
+    }
     if (message.channel.type == "dm") {
         await message.reply("You are DMing me now!");
-        return;
     }
     logToDB(message)
 
@@ -94,10 +95,25 @@ client.on('messageCreate', async message => {
         await message.reply('updating coins hopefully')
     }
     if(command[0] == 'balance'){
-        await message.reply(
-        await getBalance(message.author.id)
+        // await message.reply()
+        // await getBalance(message.author.id)
 
-        )
+        await balances.find({userid:message.author.id}, {}, {},  (async (error, result) => {
+            let replyString = ``;
+            if(error){
+                console.log(error)
+                return 'No balance'
+            }
+            if(result){
+                console.log(result.usd)
+                let resultJson = JSON.stringify(result[0])
+                let newString = JSON.parse(resultJson)
+                console.log(newString.usd)
+
+                // return result.usd
+                await message.reply( newString.usd.toString())
+            }
+        }))
     }
     if(command[0] == 'help'){
         help();
@@ -118,21 +134,23 @@ function logToFile(logstring){
 async function logToDB(message){
     //Logs message to the database
 
-    //the first param is the name of the model being used, the second is the schema in the db,
-    //Good to use plurals for the schema name
-    const newMessageModel = mongoose.model('message', 'messages');
-
-    // const newMessage = new newMessageModel({ username: message.author.username, message: message.content, timestamp: message.createdTimestamp });
-    // const newMessage = new newMessageModel(message);
     let writeMessage = {
         username: message.author.username,
         userid: message.author.id,
         message: message.content,
         timestamp: message.createdTimestamp,
-        channelId:message.channelId
+        channelId:message.channelId,
+
+        type:message.type,
+        pinned:message.pinned,
+
+        tts:message.tts,
+        system:message.system,
+        nonce:message.nonce
+
     }
 
-    await newMessageModel.create(writeMessage, (err, data) => {
+    await messages.create(writeMessage, (err) => {
         if(err){
             console.log('ERROR STUFF BELOW \n' + err)
         }else{
@@ -142,8 +160,6 @@ async function logToDB(message){
 }
 
 async function registerUser(user){
-    let userModel = mongoose.model('user', 'users')
-    let balanceModel = mongoose.model('balance', 'balances')
 
     let newUser = {
         username:user.username,
@@ -152,7 +168,7 @@ async function registerUser(user){
         timestamp:user.timestamp
     }
 
-    userModel.create(newUser, (err, data) => {
+    users.create(newUser, (err, data) => {
         if(err){
             console.log(err)
         }else{
@@ -173,14 +189,13 @@ async function registerUser(user){
         algo:0,
     }
 
-    balanceModel.create(newBalance, (err, data) => {
+    balances.create(newBalance, (err, data) => {
         if(err){
             console.log(err)
         }else{
             // console.log('DATA WRITTEN \n' + data + '\n' + 'END OF DATA')
         }
     })
-
 }
 
 async function checkIfRegistered(user){
@@ -215,17 +230,15 @@ function help(helpCommand){
         case 'help':
             console.log('default help used')
             return 'default help used'
-            break;
         case 'other':
             console.log('other help used')
             return 'other help used'
-            break;
     }
 }
 
 async function getBalance(user){
     const userModel = mongoose.model('balance', 'balances')
-    let maybeUser = userModel.find({userid:user}, {}, {}, ((error, result) => {
+    await users.find({userid:user}, {}, {}, ((error, result) => {
         if(error){
             console.log(error)
             return 'No balance'
