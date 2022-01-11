@@ -8,6 +8,7 @@ import messages from "./models/messageModel.js";
 import users from './models/userModel.js'
 import balances from './models/balanceModel.js'
 import coins from './models/coinModel.js'
+import * as Process from "process";
 
 dotenv.config()
 
@@ -30,6 +31,17 @@ const client = new Client({
 client.on('ready', async() => {
     console.log(`Logged in as ${client.user.tag}!`)
 });
+
+
+////////////////////////////
+//////   INTERVALS   ///////
+
+setInterval(updateCoins, Process.env.COINGECKO_REFRESH_TIME );
+
+
+////////////////////////////
+
+
 
 client.on('messageCreate', async message => {
 
