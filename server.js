@@ -42,8 +42,18 @@ client.on('ready', async() => {
 
 
 ////////////////////////////
+//
+// client.on('message', async message => {
+//     console.log('DM RECEIVED')
+//     if (message.channel.type == "dm") {
+//         await message.author.send("You are DMing me now!");
+//         return;
+//     }
+// });
+
 
 client.on('messageCreate', async message => {
+
 
     // console.log(message)
     // let rawMessage = mongoose.model('raw_message', 'raw_messages')
@@ -52,9 +62,9 @@ client.on('messageCreate', async message => {
     if(!message.content.startsWith(prefix) || message.author.bot){
         return;
     }
-    if (message.channel.type == "dm") {
-        await message.reply("You are DMing me now!");
-    }
+    // if (message.channel.type == "dm") {
+    //     await message.reply("You are DMing me now!");
+    // }
     logToDB(message)
 
         let input = message.content.substring(1)
@@ -107,16 +117,54 @@ client.on('messageCreate', async message => {
                 return 'No balance'
             }
             if(result){
-                console.log(result.usd)
-                replyString += result
+                // console.log(result.usd)
+                // replyString += result
                 let resultJson = JSON.stringify(result[0])
                 let newString = JSON.parse(resultJson)
-                console.log(newString.usd)
+                // console.log(newString.usd)
 
                 // return result.usd
                 await message.reply( newString.usd.toString())
             }
         }))
+
+    }
+
+    if(command[0] == 'buy'){
+        if(command[1] && command[1] != ''){
+            if(command[2] && command[2] != ''){
+
+
+                let maybeUser = balances.find({userid:message.author.id}, {}, {},  (async (error, result) => {
+                    let replyString = ``;
+                    if(error){
+                        console.log(error)
+                        return 'No balance'
+                    }
+                    if(result){
+
+                        let resultJson = JSON.stringify(result[0])
+                        let newString = JSON.parse(resultJson)
+
+
+                        let price = Number.parseFloat(await getPriceOfCoin(command[1]))
+                        console.log(price)
+
+                        await message.reply( newString.usd.toString())
+                    }
+                }))
+
+            }
+
+        }
+
+
+
+
+    }
+    if(command[0] == 'bal'){
+        if(command[1] && command[1] != '')
+        await message.reply(await getPriceOfCoin(command[1]));
     }
     if(command[0] == 'help'){
         help();
@@ -124,6 +172,21 @@ client.on('messageCreate', async message => {
 
     console.log('COMMAND 1' + command[0])
 });
+
+async function getPriceOfCoin(coin){
+    //returns a string of the USD price of the provided coin
+    if(coin !== ''){
+        // if(currency != 'cad' || currency != 'usd' || currency != 'gbp' || currency != 'rub'){
+        //     currency = 'cad';
+        // console.log("CURRENCY SET ",currency)
+        // }
+        // console.log("CURRENCY AFTER SET ",currency)
+        let queryUrl=`https://api.coingecko.com/api/v3/simple/price?ids=${coin}&vs_currencies=usd`;
+        let price = await axios.get(queryUrl);
+        console.log( price.data[coin]['usd']);
+        return price.data[coin]['usd'].toString();
+    }
+}
 
 function logToFile(logstring){
     fs.appendFile("testlog.txt", " \n" + logstring + " \n" +
@@ -207,7 +270,7 @@ async function checkIfRegistered(user){
     console.log(`CHECKING IF REGISTERED WITH ID: ${user.userid}`)
     let userModel = mongoose.model('user', 'users')
 
-    userModel.findOne({'userid': user.userid}, async function(err, result){
+    await userModel.findOne({'userid': user.userid}, async function(err, result){
         if(err){
             console.log('ERROR IS: \n' + err)
         }
@@ -256,6 +319,14 @@ async function getBalance(user){
         }
     }))
 
+}
+
+async function getStoredCoinNames(){
+    let coinList = coins.find({}, {}, {})
+    // for (let coinListKey in coinList.result) {
+    //     console.log(coinListKey)
+    // }
+    console.log(coinList)
 }
 
 async function getCoinNames(){
