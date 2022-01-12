@@ -146,11 +146,21 @@ client.on('messageCreate', async message => {
                         let resultJson = JSON.stringify(result[0])
                         let newString = JSON.parse(resultJson)
 
+                        let coinPrice = Number.parseFloat(await getPriceOfCoin(command[1]))
+                        // console.log(coinPrice)
+                        let buyPrice = coinPrice * Number.parseFloat(command[2])
+                        // console.log('BUY PRICE IS: '+buyPrice)
+                        // console.log('BALANCE IS: '+ newString.usd)
+                        // console.log(`Buying costs ${buyPrice}\n `+ `Balance is ${newString.usd}\n` + `THIS TRADE IS ${newString.usd >= buyPrice}`)
+                        if(newString.usd >= buyPrice){
+                            await message.reply('TRADE ALLOWED')
+                        }else if(newString.usd < buyPrice){
+                            await message.reply('TRADE NOT ALLOWED, GET MORE MONEY');
+                        }else{
+                            await message.reply('ERROR PROCESSING TRADE, NO ACTIONS TAKEN.');
+                        }
 
-                        let price = Number.parseFloat(await getPriceOfCoin(command[1]))
-                        console.log(price)
-
-                        await message.reply( newString.usd.toString())
+                        // await message.reply( newString.usd.toString())
                     }
                 }))
 
