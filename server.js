@@ -2,7 +2,6 @@ import dotenv from 'dotenv'
 import axios from 'axios'
 import {Client, Intents, Message} from 'discord.js';
 import fs from 'fs'
-import url from 'url'
 import mongoose from 'mongoose'
 import messages from "./models/messageModel.js";
 import users from './models/userModel.js'
@@ -37,7 +36,7 @@ client.on('ready', async() => {
 ////////////////////////////
 //////   INTERVALS   ///////
 
-// setInterval(updateCoins, Process.env.COINGECKO_REFRESH_TIME );
+setInterval(updateCoins, Process.env.COINGECKO_REFRESH_TIME );
 // setInterval(updateCoins,60000 );
 
 
@@ -144,20 +143,34 @@ client.on('messageCreate', async message => {
                     if(result){
 
                         let resultJson = JSON.stringify(result[0])
-                        let newString = JSON.parse(resultJson)
+                        let balance = JSON.parse(resultJson)
 
                         let coinPrice = Number.parseFloat(await getPriceOfCoin(command[1]))
-                        // console.log(coinPrice)
                         let buyPrice = coinPrice * Number.parseFloat(command[2])
-                        // console.log('BUY PRICE IS: '+buyPrice)
-                        // console.log('BALANCE IS: '+ newString.usd)
-                        // console.log(`Buying costs ${buyPrice}\n `+ `Balance is ${newString.usd}\n` + `THIS TRADE IS ${newString.usd >= buyPrice}`)
-                        if(newString.usd >= buyPrice){
+                        let newBalance = balance - buyPrice;
+                        //if balace of user is greater than buy price, trade is allowed
+
+                        if(balance.usd >= buyPrice){
+                            let update = {
+                                [command[1]]:newBalance
+                            }
+                            balances.updateOne({userid:message.author.id}, update, {}, (error, result) => {
+                                if(error){
+                                    console.log('ERROR IS: ', error)
+                                }
+                                if(result){
+                                    console.log('UPDATED VALUE IS: ', result)
+                                }
+                            } )
+
+
+
                             await message.reply('TRADE ALLOWED')
-                        }else if(newString.usd < buyPrice){
+                        }else if(balance.usd < buyPrice){
                             await message.reply('TRADE NOT ALLOWED, GET MORE MONEY');
                         }else{
                             await message.reply('ERROR PROCESSING TRADE, NO ACTIONS TAKEN.');
+
                         }
 
                         // await message.reply( newString.usd.toString())
@@ -176,6 +189,20 @@ client.on('messageCreate', async message => {
         if(command[1] && command[1] != '')
         await message.reply(await getPriceOfCoin(command[1]));
     }
+    if(command[0] == 'name'){
+        // await message.reply(
+        // );
+        console.log( 'LOG THE RETURNED ARRAY: ')
+        // for await (let coin of getStoredCoinNames()){
+        //     console.log(coin.id)
+        // }
+        // console.log(await getStoredCoinNames())
+        let coinList = await getStoredCoinNames();
+        coinList.forEach((coin) => {
+            console.log(coin.id)
+        })
+
+    }
     if(command[0] == 'help'){
         help();
     }
@@ -193,9 +220,17 @@ async function getPriceOfCoin(coin){
         // console.log("CURRENCY AFTER SET ",currency)
         let queryUrl=`https://api.coingecko.com/api/v3/simple/price?ids=${coin}&vs_currencies=usd`;
         let price = await axios.get(queryUrl);
-        console.log( price.data[coin]['usd']);
+        // console.log( price.data[coin]['usd']);
         return price.data[coin]['usd'].toString();
     }
+}
+
+async function getCoinNameFromID(){
+
+}
+
+async function getCoinIDFromName(){
+
 }
 
 function logToFile(logstring){
@@ -332,11 +367,41 @@ async function getBalance(user){
 }
 
 async function getStoredCoinNames(){
-    let coinList = coins.find({}, {}, {})
-    // for (let coinListKey in coinList.result) {
-    //     console.log(coinListKey)
-    // }
-    console.log(coinList)
+    // let coinList = coins.find({}, {}, {}, ( (error, result) => {
+    //     if(error){
+    //         console.log(error)
+    //         return []
+    //     }
+    //     if(result){
+    //         // console.log(result)
+    //         let coinArr = []
+    //
+    //         for (let coin in result) {
+    //             // console.log(result[coin].id)
+    //             coinArr.push({
+    //                 id:result[coin].id.toString(),
+    //                 symbol:result[coin].symbol.toString()
+    //             })
+    //         }
+    //         // console.log(coinArr)
+    //         return coinArr;
+    //     }
+    // }))
+
+    let coinArr =[]
+
+    for await (let coin of coins.find()){
+        // console.log(coin.id)
+        coinArr.push({
+            id:coin.id.toString(),
+            symbol:coin.symbol.toString()
+        })
+    }
+
+    return coinArr;
+
+
+
 }
 
 async function getCoinNames(){
@@ -408,7 +473,7 @@ async function updateCoins(){
         coinModel.updateMany( { id : coin.id}, update, {upsert:true}, function (error){
             if(error){console.log(error)}
         })
-        console.log(coin)
+        // console.log(coin)
     })
 }
 
