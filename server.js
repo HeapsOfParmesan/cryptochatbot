@@ -197,11 +197,19 @@ client.on('messageCreate', async message => {
         //     console.log(coin.id)
         // }
         // console.log(await getStoredCoinNames())
-        let coinList = await getStoredCoinNames();
-        coinList.forEach((coin) => {
-            console.log(coin.id)
-        })
 
+        // let coinList = await getStoredCoinNames();
+        // coinList.forEach((coin) => {
+        //     console.log(coin.id)
+        // })
+
+
+    }
+
+    if(command[0] == 'getname'){
+        if(command[1] && command[1] != ''){
+            await getCoinNameFromID(command[1])
+        }
     }
     if(command[0] == 'help'){
         help();
@@ -215,9 +223,7 @@ async function getPriceOfCoin(coin){
     if(coin !== ''){
         // if(currency != 'cad' || currency != 'usd' || currency != 'gbp' || currency != 'rub'){
         //     currency = 'cad';
-        // console.log("CURRENCY SET ",currency)
         // }
-        // console.log("CURRENCY AFTER SET ",currency)
         let queryUrl=`https://api.coingecko.com/api/v3/simple/price?ids=${coin}&vs_currencies=usd`;
         let price = await axios.get(queryUrl);
         // console.log( price.data[coin]['usd']);
@@ -225,11 +231,17 @@ async function getPriceOfCoin(coin){
     }
 }
 
-async function getCoinNameFromID(){
+async function getCoinNameFromID(coinid){
+    let coinArr = await getStoredCoinNames();
 
+    let coinWithSameName = coinArr.filter((e) => {
+        return e.symbol === coinid
+    })
+
+    console.log(coinWithSameName)
 }
 
-async function getCoinIDFromName(){
+async function getCoinIDFromName(coinname){
 
 }
 
