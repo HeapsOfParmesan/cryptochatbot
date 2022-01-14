@@ -337,22 +337,23 @@ async function registerUser(user){
 
 async function checkIfRegistered(user){
     console.log(`CHECKING IF REGISTERED WITH ID: ${user.userid}`)
-    // let userModel = mongoose.model('user', 'users')
+    let userModel = mongoose.model('user', 'users')
 
-    await users.findOne({'userid': user.userid}, async function(err, result){
+    userModel.findOne({'userid': user.userid}, async function(err, result){
         if(err){
             console.log('ERROR IS: \n' + err)
         }
         else{
-            // console.log('RESULT IS: \n' + result)
+            console.log('RESULT IS: \n' + result)
             if(result == null){
                 console.log('NO RECORD EXISTS, CREATING USER.')
-                await registerUser(user)
+                await registerUser(user).then(() => {
+                    return false;
+                });
             }
-
             if(result != null){
                 if(result.userid){
-                    // console.log('USER ID FOUND: \n' + result.userid)
+                    console.log('USER ID FOUND: \n' + result.userid)
                     return true;
                 }
             }
