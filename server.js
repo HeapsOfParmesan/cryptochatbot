@@ -8,6 +8,7 @@ import users from './models/userModel.js'
 import balances from './models/balanceModel.js'
 import coins from './models/coinModel.js'
 import rawMessageModel from "./models/rawMessageModel.js";
+import newBalanceObject from "./models/newBalanceObject.js";
 import * as Process from "process";
 
 dotenv.config()
@@ -154,14 +155,16 @@ client.on('messageCreate', async message => {
                             let update = {
                                 [command[1]]:newBalance
                             }
-                            balances.updateOne({userid:message.author.id}, update, {}, (error, result) => {
+                            balances.updateOne({userid:message.author.id}, update, {upsert:true}, (error, result) => {
                                 if(error){
                                     console.log('ERROR IS: ', error)
                                 }
                                 if(result){
                                     console.log('UPDATED VALUE IS: ', result)
                                 }
-                            } )
+                            } ).then(()=> {
+                                console.log('this is a callback after the update')
+                            })
 
 
 
@@ -197,20 +200,26 @@ client.on('messageCreate', async message => {
         //     console.log(coin.id)
         // }
         // console.log(await getStoredCoinNames())
-
-        // let coinList = await getStoredCoinNames();
-        // coinList.forEach((coin) => {
-        //     console.log(coin.id)
-        // })
-
+        let coinList = await getStoredCoinNames();
+        coinList.forEach((coin) => {
+            console.log(coin.id)
+        })
 
     }
-
     if(command[0] == 'getname'){
         if(command[1] && command[1] != ''){
-            await getCoinNameFromID(command[1])
+            let val = await getCoinNameFromID(command[1])
+            await message.reply(val.toString())
         }
     }
+    if(command[0] == 'getid'){
+        if(command[1] && command[1] != ''){
+            let val = await getCoinIDFromName(command[1])
+            await message.reply(val.toString())
+        }
+    }
+
+
     if(command[0] == 'help'){
         help();
     }
@@ -223,7 +232,9 @@ async function getPriceOfCoin(coin){
     if(coin !== ''){
         // if(currency != 'cad' || currency != 'usd' || currency != 'gbp' || currency != 'rub'){
         //     currency = 'cad';
+        // console.log("CURRENCY SET ",currency)
         // }
+        // console.log("CURRENCY AFTER SET ",currency)
         let queryUrl=`https://api.coingecko.com/api/v3/simple/price?ids=${coin}&vs_currencies=usd`;
         let price = await axios.get(queryUrl);
         // console.log( price.data[coin]['usd']);
@@ -231,18 +242,18 @@ async function getPriceOfCoin(coin){
     }
 }
 
-async function getCoinNameFromID(coinid){
+async function getCoinNameFromID(coin){
     let coinArr = await getStoredCoinNames();
-
-    let coinWithSameName = coinArr.filter((e) => {
-        return e.symbol === coinid
-    })
-
-    console.log(coinWithSameName)
+    let coinWithSameName = coinArr.filter((e) => {return e.symbol === coin})
+    console.log(coinWithSameName[0].id)
+    return coinWithSameName[0].id;
 }
 
-async function getCoinIDFromName(coinname){
-
+async function getCoinIDFromName(coin){
+    let coinArr = await getStoredCoinNames();
+    let coinWithSameName = coinArr.filter((e) => {return e.id === coin})
+    console.log(coinWithSameName[0].symbol)
+    return coinWithSameName[0].symbol;
 }
 
 function logToFile(logstring){
@@ -284,7 +295,6 @@ async function logToDB(message){
 
 async function registerUser(user){
     let userModel = mongoose.model('user', 'users')
-    let balanceModel = mongoose.model('balance', 'balances')
 
     let newUser = {
         username:user.username,
@@ -314,6 +324,8 @@ async function registerUser(user){
         algo:0,
     }
 
+    // let newBalance = newBalanceObject(user.userid);
+
     balances.create(newBalance, (err, data) => {
         if(err){
             console.log(err)
@@ -325,24 +337,22 @@ async function registerUser(user){
 
 async function checkIfRegistered(user){
     console.log(`CHECKING IF REGISTERED WITH ID: ${user.userid}`)
-    let userModel = mongoose.model('user', 'users')
+    // let userModel = mongoose.model('user', 'users')
 
-    await userModel.findOne({'userid': user.userid}, async function(err, result){
+    await users.findOne({'userid': user.userid}, async function(err, result){
         if(err){
             console.log('ERROR IS: \n' + err)
         }
         else{
-            console.log('RESULT IS: \n' + result)
+            // console.log('RESULT IS: \n' + result)
             if(result == null){
                 console.log('NO RECORD EXISTS, CREATING USER.')
-                await registerUser(user).then(() => {
-                    return false;
-                });
+                await registerUser(user)
             }
 
             if(result != null){
                 if(result.userid){
-                    console.log('USER ID FOUND: \n' + result.userid)
+                    // console.log('USER ID FOUND: \n' + result.userid)
                     return true;
                 }
             }
@@ -400,16 +410,19 @@ async function getStoredCoinNames(){
     //     }
     // }))
 
-    let coinArr =[]
+    let coinArr = []
+    let coinArrString = []
 
     for await (let coin of coins.find()){
-        // console.log(coin.id)
         coinArr.push({
             id:coin.id.toString(),
             symbol:coin.symbol.toString()
         })
     }
 
+    fs.appendFile('coinList.txt', coinArrString.toString(), function (err){
+        console.log(err)
+    })
     return coinArr;
 
 
