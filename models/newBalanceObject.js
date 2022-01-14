@@ -1,7 +1,7 @@
-function newBalanceObjectConstructor(id) {
+export default function newBalanceObjectConstructor(id) {
     return {
         userid: id,
-        usd: 0,
+        usd: 1000000,
         btc: 0,
         eth: 0,
         bnb: 0,
@@ -107,4 +107,3 @@ function newBalanceObjectConstructor(id) {
         scrt: 0
     }
 }
-export default newBalanceObjectConstructor();

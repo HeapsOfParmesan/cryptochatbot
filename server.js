@@ -10,6 +10,7 @@ import coins from './models/coinModel.js'
 import rawMessageModel from "./models/rawMessageModel.js";
 import newBalanceObject from "./models/newBalanceObject.js";
 import * as Process from "process";
+import newBalanceObjectConstructor from './models/newBalanceObject.js'
 
 dotenv.config()
 
@@ -311,18 +312,20 @@ async function registerUser(user){
         }
     })
 
-    let newBalance = {
-        userid:user.userid,
-        usd:1000000,
-        btc:0,
-        eth:0,
-        bnb:0,
-        sol:0,
-        xrp:0,
-        ada:0,
-        doge:0,
-        algo:0,
-    }
+    // let newBalance = {
+    //     userid:user.userid,
+    //     usd:1000000,
+    //     btc:0,
+    //     eth:0,
+    //     bnb:0,
+    //     sol:0,
+    //     xrp:0,
+    //     ada:0,
+    //     doge:0,
+    //     algo:0,
+    // }
+
+    let newBalance = newBalanceObjectConstructor(user.userid);
 
     // let newBalance = newBalanceObject(user.userid);
 
