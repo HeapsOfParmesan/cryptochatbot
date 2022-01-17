@@ -128,7 +128,6 @@ client.on('messageCreate', async message => {
                 await message.reply( newString.usd.toString())
             }
         }))
-
     }
 
     if(command[0] == 'buy'){
@@ -156,17 +155,17 @@ client.on('messageCreate', async message => {
                             let update = {
                                 [command[1]]:newBalance
                             }
-                            balances.updateOne({userid:message.author.id}, update, {upsert:true}, (error, result) => {
-                                if(error){
-                                    console.log('ERROR IS: ', error)
-                                }
-                                if(result){
-                                    console.log('UPDATED VALUE IS: ', result)
-                                }
-                            } ).then(()=> {
-                                console.log('this is a callback after the update')
-                            })
-
+                            // balances.updateOne({userid:message.author.id}, update, {upsert:true}, (error, result) => {
+                            //     if(error){
+                            //         console.log('ERROR IS: ', error)
+                            //     }
+                            //     if(result){
+                            //         console.log('UPDATED VALUE IS: ', result)
+                            //     }
+                            // } ).then(()=> {
+                            //     console.log('this is a callback after the update')
+                            // })
+                            await buyCoin(message.author.id, command[1], command[2]);
 
 
                             await message.reply('TRADE ALLOWED')
@@ -227,6 +226,18 @@ client.on('messageCreate', async message => {
 
     console.log('COMMAND 1' + command[0])
 });
+
+async function buyCoin(user, coin, amount){
+    balances.updateOne({userid:user}, {[coin]:amount}, {upsert:true}, (error, result) => {
+        if(error){
+            console.log(error)
+        }
+        if(result){
+            console.log('UPDATED VALUE')
+            console.log(result)
+        }
+    })
+}
 
 async function getPriceOfCoin(coin){
     //returns a string of the USD price of the provided coin
@@ -312,24 +323,11 @@ async function registerUser(user){
         }
     })
 
-    // let newBalance = {
-    //     userid:user.userid,
-    //     usd:1000000,
-    //     btc:0,
-    //     eth:0,
-    //     bnb:0,
-    //     sol:0,
-    //     xrp:0,
-    //     ada:0,
-    //     doge:0,
-    //     algo:0,
-    // }
-
     let newBalance = newBalanceObjectConstructor(user.userid);
 
     // let newBalance = newBalanceObject(user.userid);
 
-    balances.create(newBalance, (err, data) => {
+    await balances.create(newBalance, (err, data) => {
         if(err){
             console.log(err)
         }else{
@@ -502,9 +500,11 @@ async function updateCoins(){
         coinModel.updateMany( { id : coin.id}, update, {upsert:true}, function (error){
             if(error){console.log(error)}
         })
-        // console.log(coin)
+        console.log(coin)
     })
 }
+
+
 
 client.login(process.env.DISCORD_TOKEN);
 

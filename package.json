@@ -16,11 +16,11 @@
     "discord-api-types": "^0.25.2",
     "discord.js": "^13.4.0",
     "dotenv": "^10.0.0",
-    "mongoose": "^6.1.4"
+    "mongoose": "^6.1.4",
+    "prettier": "^2.5.1"
   },
   "devDependencies": {
     "eslint": "^7.27.0",
     "typescript": "3.7.0-dev.20191021"
-
   }
 }
