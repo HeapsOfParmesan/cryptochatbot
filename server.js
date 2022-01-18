@@ -8,10 +8,8 @@ import users from './models/userModel.js'
 import balances from './models/balanceModel.js'
 import coins from './models/coinModel.js'
 import rawMessageModel from "./models/rawMessageModel.js";
-import newBalanceObject from "./models/newBalanceObject.js";
-import * as Process from "process";
 import newBalanceObjectConstructor from './models/newBalanceObject.js'
-
+import * as process from "process";
 dotenv.config()
 
 async function dbConnect() {
@@ -38,7 +36,7 @@ client.on('ready', async() => {
 ////////////////////////////
 //////   INTERVALS   ///////
 
-setInterval(updateCoins, Process.env.COINGECKO_REFRESH_TIME );
+// setInterval(updateCoins, Process.env.COINGECKO_REFRESH_TIME );
 // setInterval(updateCoins,60000 );
 
 
@@ -58,7 +56,7 @@ client.on('messageCreate', async message => {
 
     // console.log(message)
     // let rawMessage = mongoose.model('raw_message', 'raw_messages')
-    await rawMessageModel.create(message)
+    rawMessageModel.create(message)
 
     if(!message.content.startsWith(prefix) || message.author.bot){
         return;
@@ -98,8 +96,8 @@ client.on('messageCreate', async message => {
 
 
     if(command[0] == 'coins'){
-        // await message.reply(await getCoinNames());
-        await storeCoinPrices();
+        await message.reply(await getCoinNames());
+        // await storeCoinPrices();
         await message.reply('storing coins hopefully')
     }
     if(command[0] == 'newcoins'){
@@ -148,7 +146,7 @@ client.on('messageCreate', async message => {
 
                         let coinPrice = Number.parseFloat(await getPriceOfCoin(command[1]))
                         let buyPrice = coinPrice * Number.parseFloat(command[2])
-                        let newBalance = balance - buyPrice;
+                        let newBalance = balance.usd - buyPrice;
                         //if balace of user is greater than buy price, trade is allowed
 
                         if(balance.usd >= buyPrice){
@@ -165,7 +163,8 @@ client.on('messageCreate', async message => {
                             // } ).then(()=> {
                             //     console.log('this is a callback after the update')
                             // })
-                            await buyCoin(message.author.id, command[1], command[2]);
+                            console.log('BEFORE BUYCOIN METHOD CALL',newBalance)
+                            await buyCoin(message.author.id, command[1], command[2], newBalance);
 
 
                             await message.reply('TRADE ALLOWED')
@@ -227,15 +226,23 @@ client.on('messageCreate', async message => {
     console.log('COMMAND 1' + command[0])
 });
 
-async function buyCoin(user, coin, amount){
-    balances.updateOne({userid:user}, {[coin]:amount}, {upsert:true}, (error, result) => {
-        if(error){
-            console.log(error)
-        }
-        if(result){
-            console.log('UPDATED VALUE')
-            console.log(result)
-        }
+async function buyCoin(user, coin, amount, updatedUSDBalance){
+    console.log('IN THE BUYCOIN METHOD');
+    console.log(updatedUSDBalance);
+    let newBal = Number.parseFloat(updatedUSDBalance)
+    let coinSymbol = await getCoinIDFromName(coin)
+    await balances.updateOne({userid:user}, {[coinSymbol]:amount, ['usd']: newBal}, {upsert:true}
+    //     , (error, result) => {
+    //     if(error){
+    //         console.log(error)
+    //     }
+    //     if(result){
+    //         console.log('UPDATED VALUE')
+    //         // console.log(result)
+    //     }
+    // }
+    ).then(()=>{
+        console.log('fulfilled')
     })
 }
 
@@ -453,55 +460,61 @@ async function storeCoinPrices() {
     console.log('COIN ARRAY \n' + coinArr)
     coinArr.forEach(e => console.log(e.name))
 
-    await coinModel.insertMany(coinArr, (err) => {
-        if (err) {
-            console.log(err)
-        }
-    });
+    // await coinModel.insertMany(coinArr, (err) => {
+    //     if (err) {
+    //         console.log(err)
+    //     }
+    // });
+
+    await coinModel.insertMany(coinArr, {} );
 }
 
 async function updateCoins(){
     //update the coin prices and data in the db
-    let data = await axios.get('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false');
-    let coinArr = [];
-    const coinModel = mongoose.model('coin', 'coins');
+    try{
+        let data = await axios.get('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false');
+        let coinArr = [];
+        const coinModel = mongoose.model('coin', 'coins');
 
-    data.data.forEach((coin) => {
-        coinArr.push(coin)
-    })
-    coinArr.forEach((coin) => {
-
-        let update = {
-            symbol: coin.symbol,
-            name: coin.name,
-            current_price: coin.current_price,
-            market_cap: coin.market_cap,
-            market_cap_rank: coin.market_cap_rank,
-            total_volume: coin.total_volume,
-            high_24h: coin.high_24h,
-            low_24h: coin.low_24h,
-            price_change_24h: coin.price_change_24h,
-            price_change_percentage_24h: coin.price_change_percentage_24h,
-            market_cap_change_24h: coin.market_cap_change_24h,
-            market_cap_change_percentage_24h: coin.market_cap_change_percentage_24h,
-            circulating_supply: coin.circulating_supply,
-            total_supply: coin.total_supply,
-            max_supply: coin.max_supply,
-            ath: coin.ath,
-            ath_change_percentage: coin.ath_change_percentage,
-            ath_date: coin.ath_date,
-            atl: coin.atl,
-            atl_change_percentage: coin.atl_change_percentage,
-            atl_date: coin.atl_date,
-            roi: coin.roi,
-            last_updated: coin.last_updated
-        }
-
-        coinModel.updateMany( { id : coin.id}, update, {upsert:true}, function (error){
-            if(error){console.log(error)}
+        data.data.forEach((coin) => {
+            coinArr.push(coin)
         })
-        console.log(coin)
-    })
+        coinArr.forEach((coin) => {
+
+            let update = {
+                symbol: coin.symbol,
+                name: coin.name,
+                current_price: coin.current_price,
+                market_cap: coin.market_cap,
+                market_cap_rank: coin.market_cap_rank,
+                total_volume: coin.total_volume,
+                high_24h: coin.high_24h,
+                low_24h: coin.low_24h,
+                price_change_24h: coin.price_change_24h,
+                price_change_percentage_24h: coin.price_change_percentage_24h,
+                market_cap_change_24h: coin.market_cap_change_24h,
+                market_cap_change_percentage_24h: coin.market_cap_change_percentage_24h,
+                circulating_supply: coin.circulating_supply,
+                total_supply: coin.total_supply,
+                max_supply: coin.max_supply,
+                ath: coin.ath,
+                ath_change_percentage: coin.ath_change_percentage,
+                ath_date: coin.ath_date,
+                atl: coin.atl,
+                atl_change_percentage: coin.atl_change_percentage,
+                atl_date: coin.atl_date,
+                roi: coin.roi,
+                last_updated: coin.last_updated
+            }
+
+            coinModel.updateMany( { id : coin.id}, update, {upsert:true}, function (error){
+                if(error){console.log(error)}
+            })
+            // console.log(coin)
+        })
+    }catch (error){
+        console.log(error)
+    }
 }
 
 
