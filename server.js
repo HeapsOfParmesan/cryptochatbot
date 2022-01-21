@@ -16,6 +16,7 @@ async function dbConnect() {
   // await mongoose.connect(process.env.LOCAL_DB);
   await mongoose.connect(process.env.REMOTE_DB);
 }
+
 dbConnect().catch((err) => console.log(err));
 
 mongoose.connection.once("open", () => {
@@ -245,9 +246,9 @@ async function buyCoin(user, coin, amount, updatedUSDBalance) {
   let newBal = Number.parseFloat(updatedUSDBalance);
   let coinSymbol = await getCoinIDFromName(coin);
   await balances
-    .updateOne(
+    .findOneAndUpdate(
       { userid: user },
-      { [coinSymbol]: amount, ["usd"]: newBal },
+      { $inc :{[coinSymbol]: amount}, ["usd"]: newBal },
       { upsert: true }
       //     , (error, result) => {
       //     if(error){
