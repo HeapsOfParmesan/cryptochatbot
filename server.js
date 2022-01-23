@@ -197,6 +197,65 @@ client.on("messageCreate", async (message) => {
     if (command[0] == "buy") {
       if (command[1] && command[1] != "") {
         if (command[2] && command[2] != "") {
+          ///copied this from the buy command, change it to check the balance of the coin being sold
+          let maybeUser = balances.find(
+              { userid: message.author.id },
+              {},
+              {},
+              async (error, result) => {
+                let replyString = ``;
+                if (error) {
+                  console.log(error);
+                  return "No balance";
+                }
+                if (result) {
+                  let resultJson = JSON.stringify(result[0]);
+                  let balance = JSON.parse(resultJson);
+
+                  let coinPrice = Number.parseFloat(
+                      await getPriceOfCoin(command[1])
+                  );
+                  let buyPrice = coinPrice * Number.parseFloat(command[2]);
+                  let newBalance = balance.usd - buyPrice;
+                  //if balace of user is greater than buy price, trade is allowed
+
+                  if (balance.usd >= buyPrice) {
+                    let update = {
+                      [command[1]]: newBalance,
+                    };
+                    // balances.updateOne({userid:message.author.id}, update, {upsert:true}, (error, result) => {
+                    //     if(error){
+                    //         console.log('ERROR IS: ', error)
+                    //     }
+                    //     if(result){
+                    //         console.log('UPDATED VALUE IS: ', result)
+                    //     }
+                    // } ).then(()=> {
+                    //     console.log('this is a callback after the update')
+                    // })
+                    console.log("BEFORE BUYCOIN METHOD CALL", newBalance);
+                    await buyCoin(
+                        message.author.id,
+                        command[1],
+                        command[2],
+                        newBalance
+                    );
+
+                    await message.reply("TRADE ALLOWED");
+                  } else if (balance.usd < buyPrice) {
+                    await message.reply("TRADE NOT ALLOWED, GET MORE MONEY");
+                  } else {
+                    await message.reply(
+                        "ERROR PROCESSING TRADE, NO ACTIONS TAKEN."
+                    );
+                  }
+
+                  // await message.reply( newString.usd.toString())
+                }
+              }
+          );
+
+
         }
       }
     }
@@ -238,7 +297,21 @@ client.on("messageCreate", async (message) => {
   console.log("COMMAND 1" + command[0]);
 });
 
-async function sellCoin(user, coin, amount, updatedUSDBalance) {}
+async function sellCoin(user, coin, amount, updatedUSDBalance) {
+  console.log('IN THE SELL COIN METHOD')
+  let newBal = Number.parseFloat(updatedUSDBalance);
+  let coinSymbol = await getCoinIDFromName(coin);
+
+  await balances
+      .findOneAndUpdate(
+          {userid:user},
+          {$inc:{[coinSymbol]:-amount, ["usd"]:updatedUSDBalance}}
+      ).then(()=>{
+        console.log('fulfilled')
+      })
+
+
+}
 
 async function buyCoin(user, coin, amount, updatedUSDBalance) {
   console.log("IN THE BUYCOIN METHOD");
@@ -250,15 +323,6 @@ async function buyCoin(user, coin, amount, updatedUSDBalance) {
       { userid: user },
       { $inc :{[coinSymbol]: amount}, ["usd"]: newBal },
       { upsert: true }
-      //     , (error, result) => {
-      //     if(error){
-      //         console.log(error)
-      //     }
-      //     if(result){
-      //         console.log('UPDATED VALUE')
-      //         // console.log(result)
-      //     }
-      // }
     )
     .then(() => {
       console.log("fulfilled");
@@ -444,29 +508,8 @@ async function getBalance(user) {
 }
 
 async function getStoredCoinNames() {
-  // let coinList = coins.find({}, {}, {}, ( (error, result) => {
-  //     if(error){
-  //         console.log(error)
-  //         return []
-  //     }
-  //     if(result){
-  //         // console.log(result)
-  //         let coinArr = []
-  //
-  //         for (let coin in result) {
-  //             // console.log(result[coin].id)
-  //             coinArr.push({
-  //                 id:result[coin].id.toString(),
-  //                 symbol:result[coin].symbol.toString()
-  //             })
-  //         }
-  //         // console.log(coinArr)
-  //         return coinArr;
-  //     }
-  // }))
 
   let coinArr = [];
-  let coinArrString = [];
 
   for await (let coin of coins.find()) {
     coinArr.push({
@@ -475,9 +518,6 @@ async function getStoredCoinNames() {
     });
   }
 
-  fs.appendFile("coinList.txt", coinArrString.toString(), function (err) {
-    console.log(err);
-  });
   return coinArr;
 }
 
