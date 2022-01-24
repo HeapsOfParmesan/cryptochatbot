@@ -156,16 +156,7 @@ client.on("messageCreate", async (message) => {
                 let update = {
                   [command[1]]: newBalance,
                 };
-                // balances.updateOne({userid:message.author.id}, update, {upsert:true}, (error, result) => {
-                //     if(error){
-                //         console.log('ERROR IS: ', error)
-                //     }
-                //     if(result){
-                //         console.log('UPDATED VALUE IS: ', result)
-                //     }
-                // } ).then(()=> {
-                //     console.log('this is a callback after the update')
-                // })
+
                 console.log("BEFORE BUYCOIN METHOD CALL", newBalance);
                 await buyCoin(
                   message.author.id,
@@ -194,69 +185,97 @@ client.on("messageCreate", async (message) => {
   if (command[0] == "sell") {
     let a = await isRegistered(message.author.id);
     await console.log(a);
-    if (command[0] == "buy") {
-      if (command[1] && command[1] != "") {
-        if (command[2] && command[2] != "") {
-          ///copied this from the buy command, change it to check the balance of the coin being sold
-          let maybeUser = balances.find(
-              { userid: message.author.id },
-              {},
-              {},
-              async (error, result) => {
-                let replyString = ``;
-                if (error) {
-                  console.log(error);
-                  return "No balance";
-                }
-                if (result) {
-                  let resultJson = JSON.stringify(result[0]);
-                  let balance = JSON.parse(resultJson);
+    if (command[1] && command[1] != "") {
+      if (command[2] && command[2] != "") {
+        ///copied this from the buy command, change it to check the balance of the coin being sold
+        // let maybeUser = balances.find(
+        //     { userid: message.author.id },
+        //     {},
+        //     {},
+        //     async (error, result) => {
+        //       let replyString = ``;
+        //       if (error) {
+        //         console.log(error);
+        //         return "No balance";
+        //       }
+        //       if (result) {
+        //         let resultJson = JSON.stringify(result[0]);
+        //         let balance = JSON.parse(resultJson);
+        //
+        //         let coinPrice = Number.parseFloat(
+        //             await getPriceOfCoin(command[1])
+        //         );
+        //         let buyPrice = coinPrice * Number.parseFloat(command[2]);
+        //         let newBalance = balance.usd - buyPrice;
+        //         //if balace of user is greater than buy price, trade is allowed
+        //
+        //         if (balance.usd >= buyPrice) {
+        //           let update = {
+        //             [command[1]]: newBalance,
+        //           };
+        //           // balances.updateOne({userid:message.author.id}, update, {upsert:true}, (error, result) => {
+        //           //     if(error){
+        //           //         console.log('ERROR IS: ', error)
+        //           //     }
+        //           //     if(result){
+        //           //         console.log('UPDATED VALUE IS: ', result)
+        //           //     }
+        //           // } ).then(()=> {
+        //           //     console.log('this is a callback after the update')
+        //           // })
+        //           console.log("BEFORE BUYCOIN METHOD CALL", newBalance);
+        //           await buyCoin(
+        //               message.author.id,
+        //               command[1],
+        //               command[2],
+        //               newBalance
+        //           );
+        //
+        //           await message.reply("TRADE ALLOWED");
+        //         } else if (balance.usd < buyPrice) {
+        //           await message.reply("TRADE NOT ALLOWED, GET MORE MONEY");
+        //         } else {
+        //           await message.reply(
+        //               "ERROR PROCESSING TRADE, NO ACTIONS TAKEN."
+        //           );
+        //         }
+        //
+        //         // await message.reply( newString.usd.toString())
+        //       }
+        //     }
+        // );
 
-                  let coinPrice = Number.parseFloat(
-                      await getPriceOfCoin(command[1])
-                  );
-                  let buyPrice = coinPrice * Number.parseFloat(command[2]);
-                  let newBalance = balance.usd - buyPrice;
-                  //if balace of user is greater than buy price, trade is allowed
+        // let maybeUser = await balances
+        //   .findOne({ userid: message.author.id }, function(error, docs)  {
+        //     console.log(docs.usd)
+        //   })
+        let coin = await getCoinIDFromName( command[1]);
+        let numberOfCoins = command[2];
+        let coinPrice = Number.parseFloat(
+            await getPriceOfCoin(command[1])
+        );
+        let coinSalePrice = numberOfCoins * coinPrice
 
-                  if (balance.usd >= buyPrice) {
-                    let update = {
-                      [command[1]]: newBalance,
-                    };
-                    // balances.updateOne({userid:message.author.id}, update, {upsert:true}, (error, result) => {
-                    //     if(error){
-                    //         console.log('ERROR IS: ', error)
-                    //     }
-                    //     if(result){
-                    //         console.log('UPDATED VALUE IS: ', result)
-                    //     }
-                    // } ).then(()=> {
-                    //     console.log('this is a callback after the update')
-                    // })
-                    console.log("BEFORE BUYCOIN METHOD CALL", newBalance);
-                    await buyCoin(
-                        message.author.id,
-                        command[1],
-                        command[2],
-                        newBalance
-                    );
+        balances.find({ userid: message.author.id}, async function (err, docs) {
+          console.log(coin)
+          if(docs[0][coin]){
+            let currentBalance = docs[0][coin];
+            // console.log('DOCS COIN',  docs[0][coin] )
+            if(currentBalance >= numberOfCoins){
+              console.log('TRADE ALLOWED')
+              await sellCoin(message.author.id, command[1], numberOfCoins, coinSalePrice)
 
-                    await message.reply("TRADE ALLOWED");
-                  } else if (balance.usd < buyPrice) {
-                    await message.reply("TRADE NOT ALLOWED, GET MORE MONEY");
-                  } else {
-                    await message.reply(
-                        "ERROR PROCESSING TRADE, NO ACTIONS TAKEN."
-                    );
-                  }
+            }else if(currentBalance < numberOfCoins){
+              // console.log(`You have ${currentBalance} ${coin}, you tried to sell ${numberOfCoins} ${coin}`)
+              await message.reply(`You have ${currentBalance} ${coin}, you tried to sell ${numberOfCoins} ${coin}`);
 
-                  // await message.reply( newString.usd.toString())
-                }
-              }
-          );
+            }
 
 
-        }
+          }
+        });
+
+
       }
     }
   }
@@ -298,19 +317,18 @@ client.on("messageCreate", async (message) => {
 });
 
 async function sellCoin(user, coin, amount, updatedUSDBalance) {
-  console.log('IN THE SELL COIN METHOD')
+  console.log("IN THE SELL COIN METHOD");
   let newBal = Number.parseFloat(updatedUSDBalance);
   let coinSymbol = await getCoinIDFromName(coin);
 
   await balances
-      .findOneAndUpdate(
-          {userid:user},
-          {$inc:{[coinSymbol]:-amount, ["usd"]:updatedUSDBalance}}
-      ).then(()=>{
-        console.log('fulfilled')
-      })
-
-
+    .findOneAndUpdate(
+      { userid: user },
+      { $inc: { [coinSymbol]: -amount, ["usd"]: updatedUSDBalance } }
+    )
+    .then(() => {
+      console.log("fulfilled");
+    });
 }
 
 async function buyCoin(user, coin, amount, updatedUSDBalance) {
@@ -321,7 +339,7 @@ async function buyCoin(user, coin, amount, updatedUSDBalance) {
   await balances
     .findOneAndUpdate(
       { userid: user },
-      { $inc :{[coinSymbol]: amount}, ["usd"]: newBal },
+      { $inc: { [coinSymbol]: amount }, ["usd"]: newBal },
       { upsert: true }
     )
     .then(() => {
@@ -369,7 +387,7 @@ async function getCoinNameFromID(coin) {
     return e.symbol === coin;
   });
   console.log(coinWithSameName[0].id);
-  return coinWithSameName[0].id;
+  return coinWithSameName[0].id.toString();
 }
 
 async function getCoinIDFromName(coin) {
@@ -378,7 +396,7 @@ async function getCoinIDFromName(coin) {
     return e.id === coin;
   });
   console.log(coinWithSameName[0].symbol);
-  return coinWithSameName[0].symbol;
+  return coinWithSameName[0].symbol.toString();
 }
 
 function logToFile(logstring) {
@@ -508,7 +526,6 @@ async function getBalance(user) {
 }
 
 async function getStoredCoinNames() {
-
   let coinArr = [];
 
   for await (let coin of coins.find()) {
