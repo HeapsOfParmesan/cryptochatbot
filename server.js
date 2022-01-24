@@ -40,6 +40,8 @@ setInterval(updateCoins, Process.env.COINGECKO_REFRESH_TIME);
 // setInterval(updateCoins,60000 );
 
 ////////////////////////////
+////////////////////////////
+
 //
 // client.on('message', async message => {
 //     console.log('DM RECEIVED')
@@ -187,68 +189,7 @@ client.on("messageCreate", async (message) => {
     await console.log(a);
     if (command[1] && command[1] != "") {
       if (command[2] && command[2] != "") {
-        ///copied this from the buy command, change it to check the balance of the coin being sold
-        // let maybeUser = balances.find(
-        //     { userid: message.author.id },
-        //     {},
-        //     {},
-        //     async (error, result) => {
-        //       let replyString = ``;
-        //       if (error) {
-        //         console.log(error);
-        //         return "No balance";
-        //       }
-        //       if (result) {
-        //         let resultJson = JSON.stringify(result[0]);
-        //         let balance = JSON.parse(resultJson);
-        //
-        //         let coinPrice = Number.parseFloat(
-        //             await getPriceOfCoin(command[1])
-        //         );
-        //         let buyPrice = coinPrice * Number.parseFloat(command[2]);
-        //         let newBalance = balance.usd - buyPrice;
-        //         //if balace of user is greater than buy price, trade is allowed
-        //
-        //         if (balance.usd >= buyPrice) {
-        //           let update = {
-        //             [command[1]]: newBalance,
-        //           };
-        //           // balances.updateOne({userid:message.author.id}, update, {upsert:true}, (error, result) => {
-        //           //     if(error){
-        //           //         console.log('ERROR IS: ', error)
-        //           //     }
-        //           //     if(result){
-        //           //         console.log('UPDATED VALUE IS: ', result)
-        //           //     }
-        //           // } ).then(()=> {
-        //           //     console.log('this is a callback after the update')
-        //           // })
-        //           console.log("BEFORE BUYCOIN METHOD CALL", newBalance);
-        //           await buyCoin(
-        //               message.author.id,
-        //               command[1],
-        //               command[2],
-        //               newBalance
-        //           );
-        //
-        //           await message.reply("TRADE ALLOWED");
-        //         } else if (balance.usd < buyPrice) {
-        //           await message.reply("TRADE NOT ALLOWED, GET MORE MONEY");
-        //         } else {
-        //           await message.reply(
-        //               "ERROR PROCESSING TRADE, NO ACTIONS TAKEN."
-        //           );
-        //         }
-        //
-        //         // await message.reply( newString.usd.toString())
-        //       }
-        //     }
-        // );
 
-        // let maybeUser = await balances
-        //   .findOne({ userid: message.author.id }, function(error, docs)  {
-        //     console.log(docs.usd)
-        //   })
         let coin = await getCoinIDFromName( command[1]);
         let numberOfCoins = command[2];
         let coinPrice = Number.parseFloat(
@@ -270,8 +211,6 @@ client.on("messageCreate", async (message) => {
               await message.reply(`You have ${currentBalance} ${coin}, you tried to sell ${numberOfCoins} ${coin}`);
 
             }
-
-
           }
         });
 
@@ -284,8 +223,7 @@ client.on("messageCreate", async (message) => {
       await message.reply(await getPriceOfCoin(command[1]));
   }
   if (command[0] == "name") {
-    // await message.reply(
-    // );
+
     console.log("LOG THE RETURNED ARRAY: ");
     // for await (let coin of getStoredCoinNames()){
     //     console.log(coin.id)
