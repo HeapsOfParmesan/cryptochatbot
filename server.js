@@ -52,16 +52,21 @@ setInterval(updateCoins, Process.env.COINGECKO_REFRESH_TIME);
 // });
 
 client.on("messageCreate", async (message) => {
-  // console.log(message)
-  // let rawMessage = mongoose.model('raw_message', 'raw_messages')
+
+
+  //This is deliberately not awaited, we dont care if these are in the right order, we just want them
   rawMessageModel.create(message);
 
   if (!message.content.startsWith(prefix) || message.author.bot) {
     return;
   }
+
+  //this doesn't work yet
   // if (message.channel.type == "dm") {
   //     await message.reply("You are DMing me now!");
   // }
+
+  //This is deliberately not awaited, we dont care if these are in the right order, we just want them
   logToDB(message);
 
   let input = message.content.substring(1);
@@ -75,17 +80,6 @@ client.on("messageCreate", async (message) => {
       timestamp: message.createdTimestamp,
     };
     console.log(newUser);
-
-    // newMessageModel.findOne({}, function (err, data){
-    //     if(err){
-    //         console.log('not found')
-    //     }else{
-    //         console.log('RETRIEVED DATA BELOW\n' + data)
-    //     }
-    // })
-    // let a = await checkIfRegistered( newUser, (data) =>{
-    //     console.log(data)
-    // })
 
     await checkIfRegistered(newUser);
 
@@ -117,17 +111,30 @@ client.on("messageCreate", async (message) => {
           return "No balance";
         }
         if (result) {
-          // console.log(result.usd)
           // replyString += result
-          let resultJson = JSON.stringify(result[0]);
-          let newString = JSON.parse(resultJson);
-          // console.log(newString.usd)
 
-          // return result.usd
-          await message.reply(newString.usd.toString());
+
+          let resultJsonString = JSON.stringify(result[0]);
+
+          // console.log(resultJsonString)
+
+
+          let newJSON = JSON.parse(resultJsonString);
+          console.log(newJSON)
+
+          let filteredListOfCoins = getNonNullCoinBalances(newJSON);
+          console.log(filteredListOfCoins)
+          let reply = ``;
+          filteredListOfCoins.forEach(e => {
+            if(e.name != '_id' && e.name != 'userid')
+            reply += e.name + ' - ' + e.value + '\n';
+          })
+          console.log(reply)
+          await message.reply(reply);
         }
       }
     );
+
   }
 
   if (command[0] == "buy") {
@@ -253,6 +260,21 @@ client.on("messageCreate", async (message) => {
 
   console.log("COMMAND 1" + command[0]);
 });
+
+function getNonNullCoinBalances(coinList){
+  var filtList = Object.entries(coinList).reduce((a,[key,val])=>{
+    if(val)
+      if(val.key != '_id' || val.key != 'userid'){
+        // console.log(val)
+        a.push({name : key, value : val});
+      }
+    return a;
+  },[]);
+
+  return filtList;
+
+  // console.log(filtList);
+}
 
 async function sellCoin(user, coin, amount, updatedUSDBalance) {
   console.log("IN THE SELL COIN METHOD");

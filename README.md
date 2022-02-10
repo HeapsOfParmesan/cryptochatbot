@@ -8,12 +8,12 @@ CryptoChat
 ---
 ### TO DO
 
-1. Add selling currency functionality
-2. Add compare to other people in channel
-3. Add stocks
-4. Add error handling to pretty much everything
-5. Add direct messaging reply functionality
-6. Add more info replies about market cap and other historical performance
+1. Add compare to other people in channel
+2. Add stocks
+3. Add error handling to pretty much everything
+4. Add direct messaging reply functionality
+5. Add more info replies about market cap and other historical performance
+6. Calculate total value of portfolio and return that on balance check
 
 
 ---
