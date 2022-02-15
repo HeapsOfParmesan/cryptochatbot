@@ -100,46 +100,53 @@ client.on("messageCreate", async (message) => {
     // await message.reply()
     // await getBalance(message.author.id)
 
-    let maybeUser = balances.find(
-      { userid: message.author.id },
-      {},
-      {},
-      async (error, result) => {
-        let replyString = ``;
-        if (error) {
-          console.log(error);
-          return "No balance";
+    try{
+      let maybeUser = balances.find(
+        { userid: message.author.id },
+        {},
+        {},
+        async (error, result) => {
+          let replyString = ``;
+          if (error) {
+            console.log(error);
+            return "No balance";
+          }
+          if (result) {
+            // replyString += result
+
+
+            let resultJsonString = JSON.stringify(result[0]);
+
+            // console.log(resultJsonString)
+
+
+            let newJSON = JSON.parse(resultJsonString);
+            console.log(newJSON)
+
+            let filteredListOfCoins = getNonNullCoinBalances(newJSON);
+            console.log(filteredListOfCoins)
+            let reply = ``;
+            filteredListOfCoins.forEach(e => {
+              if(e.name != '_id' && e.name != 'userid')
+              reply += e.name + ' - ' + e.value + '\n';
+            })
+            console.log(reply)
+            await message.reply(reply);
+          }
         }
-        if (result) {
-          // replyString += result
+      );
+    }catch (e) {
+      console.log('error checking balance');
+      await message.reply(`Error retrieving balance, are you sure you're registered?`);
 
-
-          let resultJsonString = JSON.stringify(result[0]);
-
-          // console.log(resultJsonString)
-
-
-          let newJSON = JSON.parse(resultJsonString);
-          console.log(newJSON)
-
-          let filteredListOfCoins = getNonNullCoinBalances(newJSON);
-          console.log(filteredListOfCoins)
-          let reply = ``;
-          filteredListOfCoins.forEach(e => {
-            if(e.name != '_id' && e.name != 'userid')
-            reply += e.name + ' - ' + e.value + '\n';
-          })
-          console.log(reply)
-          await message.reply(reply);
-        }
-      }
-    );
+    }
 
   }
 
   if (command[0] == "buy") {
     if (command[1] && command[1] != "") {
       if (command[2] && command[2] != "") {
+
         let maybeUser = balances.find(
           { userid: message.author.id },
           {},
@@ -574,7 +581,7 @@ async function updateCoins() {
         last_updated: coin.last_updated,
       };
 
-      coinModel.updateMany(
+      coinModel.updateOne(
         { id: coin.id },
         update,
         { upsert: true },

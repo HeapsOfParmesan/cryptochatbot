@@ -30,3 +30,4 @@ Installation
    * mongo connection
    * discord token
 4. Run server.js
+5. Add bot to server
